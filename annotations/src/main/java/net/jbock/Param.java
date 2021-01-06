@@ -32,18 +32,6 @@ public @interface Param {
   int value();
 
   /**
-   * @return a class
-   * @see Option#mappedBy
-   */
-  Class<?> mappedBy() default Object.class;
-
-  /**
-   * @return a class
-   * @see Option#collectedBy
-   */
-  Class<?> collectedBy() default Object.class;
-
-  /**
    * The key that is used to find the parameter
    * description in the i18 resource bundle for the online help.
    * If no bundleKey is defined,

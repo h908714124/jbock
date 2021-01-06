@@ -7,7 +7,7 @@ import net.jbock.coerce.reference.ReferencedType;
 import net.jbock.compiler.TypeTool;
 import net.jbock.compiler.ValidationException;
 
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.function.Function;
 
@@ -21,19 +21,20 @@ public final class MapperClassValidator {
   private final Function<String, ValidationException> errorHandler;
   private final TypeTool tool;
   private final TypeMirror expectedReturnType;
-  private final TypeElement mapperClass;
+  private final ExecutableElement mapper;
 
-  public MapperClassValidator(Function<String, ValidationException> errorHandler, TypeTool tool, TypeMirror expectedReturnType, TypeElement mapperClass) {
+  public MapperClassValidator(Function<String, ValidationException> errorHandler, TypeTool tool,
+                              TypeMirror expectedReturnType, ExecutableElement mapper) {
     this.errorHandler = errorHandler;
     this.tool = tool;
     this.expectedReturnType = expectedReturnType;
-    this.mapperClass = mapperClass;
+    this.mapper = mapper;
   }
 
   public Either<String, CodeBlock> getMapExpr() {
-    commonChecks(mapperClass);
-    checkNotAbstract(mapperClass);
-    ReferencedType<Function<?, ?>> functionType = new ReferenceTool<>(MAPPER, this::boom, tool, mapperClass)
+    commonChecks(mapper);
+    checkNotAbstract(mapper);
+    ReferencedType<Function<?, ?>> functionType = new ReferenceTool<>(MAPPER, this::boom, tool, mapper)
         .getReferencedType();
     TypeMirror inputType = functionType.typeArguments().get(0);
     TypeMirror outputType = functionType.typeArguments().get(1);
@@ -57,9 +58,9 @@ public final class MapperClassValidator {
       TypevarMapping outputSolution) {
     return inputSolution.merge(outputSolution)
         .flatMap(Function.identity(), mapping ->
-            mapping.getTypeParameters(mapperClass))
+            mapping.getTypeParameters(mapper))
         .map(this::enrichMessage, typeParameters -> CodeBlock.of("new $T$L()$L",
-            tool.types().erasure(mapperClass.asType()),
+            tool.types().erasure(mapper.asType()),
             getTypeParameterList(typeParameters.getTypeParameters()),
             functionType.isSupplier() ? ".get()" : ""));
   }

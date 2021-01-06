@@ -32,26 +32,6 @@ public @interface Option {
   char mnemonic() default ' ';
 
   /**
-   * Declare a custom mapper for this option.
-   * This is either a
-   * {@link java.util.function.Function Function}
-   * accepting strings,
-   * or a {@link java.util.function.Supplier Supplier} thereof.
-   *
-   * @return an optional mapper class
-   */
-  Class<?> mappedBy() default Object.class;
-
-  /**
-   * Declare a custom collector for a <em>repeatable</em> parameter.
-   * This is either a {@link java.util.stream.Collector Collector}
-   * or a {@link java.util.function.Supplier Supplier} thereof.
-   *
-   * @return an optional collector class
-   */
-  Class<?> collectedBy() default Object.class;
-
-  /**
    * The key that is used to find the parameter
    * description in the i18 resource bundle for the online help.
    * If no bundleKey is defined, the method name is used as bundle key instead.

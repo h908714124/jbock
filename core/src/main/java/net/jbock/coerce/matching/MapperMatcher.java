@@ -10,7 +10,7 @@ import net.jbock.coerce.either.Left;
 import net.jbock.coerce.either.Right;
 import net.jbock.compiler.TypeTool;
 
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,11 +24,11 @@ import static net.jbock.coerce.matching.AutoMatcher.boxedType;
 
 public class MapperMatcher {
 
-  private final TypeElement mapperClass;
+  private final ExecutableElement mapper;
   private final BasicInfo basicInfo;
 
-  public MapperMatcher(BasicInfo basicInfo, TypeElement mapperClass) {
-    this.mapperClass = mapperClass;
+  public MapperMatcher(BasicInfo basicInfo, ExecutableElement mapper) {
+    this.mapper = mapper;
     this.basicInfo = basicInfo;
   }
 
@@ -72,10 +72,10 @@ public class MapperMatcher {
   }
 
   private MatchingAttempt attempt(TypeMirror expectedReturnType, CodeBlock extractExpr, ParameterSpec constructorParam, NonFlagSkew skew) {
-    return new MatchingAttempt(expectedReturnType, extractExpr, constructorParam, skew, mapperClass);
+    return new MatchingAttempt(expectedReturnType, extractExpr, constructorParam, skew, mapper);
   }
 
   private MatchingAttempt attempt(TypeMirror expectedReturnType, ParameterSpec constructorParam, NonFlagSkew skew) {
-    return new MatchingAttempt(expectedReturnType, CodeBlock.of("$N", constructorParam), constructorParam, skew, mapperClass);
+    return new MatchingAttempt(expectedReturnType, CodeBlock.of("$N", constructorParam), constructorParam, skew, mapper);
   }
 }

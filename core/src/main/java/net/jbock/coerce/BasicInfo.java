@@ -9,15 +9,9 @@ import net.jbock.compiler.TypeTool;
 import net.jbock.compiler.ValidationException;
 
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 
 /**
  * Coercion input: Information about a single parameter (option or param).
@@ -33,20 +27,20 @@ public class BasicInfo {
   private final ClassName optionType;
 
   // nullable
-  private final TypeElement mapperClass;
+  private final ExecutableElement mapper;
 
   // nullable
-  private final TypeElement collectorClass;
+  private final ExecutableElement collector;
 
   BasicInfo(
-      Optional<TypeElement> mapperClass,
-      Optional<TypeElement> collectorClass,
+      ExecutableElement mapper,
+      ExecutableElement collector,
       ParamName paramName,
       ClassName optionType,
       ExecutableElement sourceMethod,
       TypeTool tool) {
-    this.mapperClass = mapperClass.orElse(null);
-    this.collectorClass = collectorClass.orElse(null);
+    this.mapper = mapper;
+    this.collector = collector;
     this.paramName = paramName;
     this.optionType = optionType;
     this.sourceMethod = sourceMethod;
@@ -85,12 +79,12 @@ public class BasicInfo {
     return tool;
   }
 
-  Optional<TypeElement> mapperClass() {
-    return Optional.ofNullable(mapperClass);
+  Optional<ExecutableElement> mapperClass() {
+    return Optional.ofNullable(mapper);
   }
 
-  Optional<TypeElement> collectorClass() {
-    return Optional.ofNullable(collectorClass);
+  Optional<ExecutableElement> collectorClass() {
+    return Optional.ofNullable(collector);
   }
 
   public ClassName optionType() {
@@ -101,16 +95,5 @@ public class BasicInfo {
     Types types = tool.types();
     return types.directSupertypes(mirror).stream()
         .anyMatch(t -> tool.isSameErasure(t, Enum.class.getCanonicalName()));
-  }
-
-  List<TypeElement> originatingElements() {
-    if (collectorClass == null) {
-      return mapperClass == null ?
-          emptyList() :
-          singletonList(mapperClass);
-    }
-    return mapperClass == null ?
-        singletonList(collectorClass) :
-        Arrays.asList(mapperClass, collectorClass);
   }
 }

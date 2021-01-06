@@ -20,8 +20,8 @@ public class CoercionProvider {
   public static Coercion nonFlagCoercion(
       ExecutableElement sourceMethod,
       ParamName paramName,
-      Optional<TypeElement> mapperClass,
-      Optional<TypeElement> collectorClass,
+      ExecutableElement mapperClass,
+      ExecutableElement collectorClass,
       ClassName optionType,
       TypeTool tool) {
     BasicInfo info = new BasicInfo(mapperClass, collectorClass, paramName, optionType, sourceMethod, tool);
@@ -55,7 +55,7 @@ public class CoercionProvider {
             inputType)));
   }
 
-  private static CodeBlock collectorPresentExplicit(BasicInfo basicInfo, TypeMirror inputType, TypeElement mapperClass) {
+  private static CodeBlock collectorPresentExplicit(BasicInfo basicInfo, TypeMirror inputType, ExecutableElement mapperClass) {
     return new MapperClassValidator(basicInfo::failure, basicInfo.tool(), inputType, mapperClass).getMapExpr()
         .orElseThrow(basicInfo::failure);
   }

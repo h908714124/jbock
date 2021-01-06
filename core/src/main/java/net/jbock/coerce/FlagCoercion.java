@@ -6,13 +6,12 @@ import com.squareup.javapoet.TypeName;
 import net.jbock.compiler.ParamName;
 
 import javax.lang.model.element.ExecutableElement;
-import java.util.Collections;
 import java.util.function.Function;
 
 public class FlagCoercion extends Coercion {
 
   public FlagCoercion(ParamName paramName, ExecutableElement sourceMethod) {
-    super(ParameterSpec.builder(TypeName.get(sourceMethod.getReturnType()), paramName.snake()).build(), paramName, Collections.emptyList());
+    super(ParameterSpec.builder(TypeName.get(sourceMethod.getReturnType()), paramName.snake()).build(), paramName);
   }
 
   public Skew getSkew() {

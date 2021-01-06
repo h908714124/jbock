@@ -15,7 +15,7 @@ public class NonFlagCoercion extends Coercion {
 
   public NonFlagCoercion(BasicInfo basicInfo, CodeBlock mapExpr, CodeBlock collectExpr, CodeBlock extractExpr,
                          NonFlagSkew skew, ParameterSpec constructorParam) {
-    super(constructorParam, basicInfo.parameterName(), basicInfo.originatingElements());
+    super(constructorParam, basicInfo.parameterName());
     this.collectExpr = collectExpr;
     this.mapExpr = mapExpr;
     this.extractExpr = extractExpr;

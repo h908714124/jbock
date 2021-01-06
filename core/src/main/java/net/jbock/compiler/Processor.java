@@ -3,7 +3,9 @@ package net.jbock.compiler;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;
+import net.jbock.CollectorFor;
 import net.jbock.Command;
+import net.jbock.MapperFor;
 import net.jbock.Option;
 import net.jbock.Param;
 import net.jbock.coerce.SuppliedClassValidator;
@@ -29,14 +31,18 @@ import java.io.Writer;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 import static javax.lang.model.element.Modifier.ABSTRACT;
+import static javax.lang.model.element.Modifier.PRIVATE;
 import static javax.lang.model.util.ElementFilter.methodsIn;
 import static net.jbock.compiler.TypeTool.AS_DECLARED;
 
@@ -96,19 +102,12 @@ public final class Processor extends AbstractProcessor {
         throw ValidationException.create(sourceElement, "Define at least one abstract method");
       }
 
-      // track originating elements for gradle incremental processing
-      List<TypeElement> originatingElements = parameters.stream()
-          .map(Parameter::coercion)
-          .flatMap(coercion -> coercion.originatingElements().stream())
-          .filter(originatingElement -> isSeparateClassFile(sourceElement, originatingElement))
-          .collect(Collectors.toList());
-
       checkOnlyOnePositionalList(parameters);
       checkRankConsistentWithPosition(parameters);
 
       Context context = new Context(sourceElement, generatedClass, optionType, parameters);
       TypeSpec typeSpec = GeneratedClass.create(context).define();
-      write(sourceElement, context.generatedClass(), typeSpec, originatingElements);
+      write(sourceElement, context.generatedClass(), typeSpec);
     } catch (ValidationException e) {
       processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage(), e.about);
     } catch (AssertionError error) {
@@ -137,13 +136,13 @@ public final class Processor extends AbstractProcessor {
     }
   }
 
-  private void write(TypeElement sourceElement, ClassName generatedType, TypeSpec definedType, List<TypeElement> originatingElements) {
+  private void write(TypeElement sourceElement, ClassName generatedType, TypeSpec definedType) {
     JavaFile.Builder builder = JavaFile.builder(generatedType.packageName(), definedType);
     JavaFile javaFile = builder.build();
     try {
       JavaFileObject sourceFile = processingEnv.getFiler()
           .createSourceFile(generatedType.toString(),
-              originatingElements.toArray(new TypeElement[0]));
+              new TypeElement[]{sourceElement});
       try (Writer writer = sourceFile.openWriter()) {
         String sourceCode = javaFile.toString();
         writer.write(sourceCode);
@@ -159,17 +158,57 @@ public final class Processor extends AbstractProcessor {
     }
   }
 
+  private Map<String, ExecutableElement> getMappers(TypeTool tool, TypeElement sourceElement) {
+    List<ExecutableElement> methods = methodsIn(sourceElement.getEnclosedElements()).stream()
+        .filter(m -> validateMapperMethod(tool, m))
+        .collect(Collectors.toList());
+    Map<String, ExecutableElement> result = new HashMap<>();
+    for (ExecutableElement method : methods) {
+      String key = method.getAnnotation(MapperFor.class).value();
+      ExecutableElement exist = result.get(key);
+      if (exist != null) {
+        throw ValidationException.create(method, "Duplicate mapper key: '" + key + "'");
+      }
+      result.put(key, method);
+    }
+    return result;
+  }
+
+  private Map<String, ExecutableElement> getCollectors(TypeTool tool, TypeElement sourceElement) {
+    List<ExecutableElement> methods = methodsIn(sourceElement.getEnclosedElements()).stream()
+        .filter(m -> validateCollectorMethod(tool, m))
+        .collect(Collectors.toList());
+    Map<String, ExecutableElement> result = new HashMap<>();
+    for (ExecutableElement method : methods) {
+      String key = method.getAnnotation(CollectorFor.class).value();
+      ExecutableElement exist = result.get(key);
+      if (exist != null) {
+        throw ValidationException.create(method, "Duplicate collector key: '" + key + "'");
+      }
+      result.put(key, method);
+    }
+    return result;
+  }
+
   private List<Parameter> getParams(TypeTool tool, TypeElement sourceElement, ClassName optionType) {
+    Map<String, ExecutableElement> mappers = getMappers(tool, sourceElement);
+    Map<String, ExecutableElement> collectors = getCollectors(tool, sourceElement);
     Methods methods = Methods.create(methodsIn(sourceElement.getEnclosedElements()).stream()
         .filter(Processor::validateParameterMethod)
         .collect(Collectors.toList()));
     List<Parameter> params = new ArrayList<>();
     for (int i = 0; i < methods.params().size(); i++) {
-      params.add(Parameter.createPositionalParam(tool, params, methods.params().get(i), i, getDescription(methods.params().get(i)), optionType));
+      params.add(Parameter.createPositionalParam(tool, params, methods.params().get(i), i,
+          mappers.get(methods.params().get(i).getSimpleName().toString()),
+          collectors.get(methods.params().get(i).getSimpleName().toString()),
+          getDescription(methods.params().get(i)), optionType));
     }
     boolean anyMnemonics = methods.options().stream().anyMatch(method -> method.getAnnotation(Option.class).mnemonic() != ' ');
     for (ExecutableElement option : methods.options()) {
-      params.add(Parameter.createNamedOption(anyMnemonics, tool, params, option, getDescription(option), optionType));
+      params.add(Parameter.createNamedOption(anyMnemonics, tool, params, option,
+          mappers.get(option.getSimpleName().toString()),
+          collectors.get(option.getSimpleName().toString()),
+          getDescription(option), optionType));
     }
     if (!sourceElement.getAnnotation(Command.class).helpDisabled()) {
       methods.options().forEach(this::checkHelp);
@@ -239,6 +278,47 @@ public final class Processor extends AbstractProcessor {
     }
     if (isUnreachable(method.getReturnType())) {
       throw ValidationException.create(method, "Unreachable parameter type.");
+    }
+    return true;
+  }
+
+  private static boolean validateMapperMethod(TypeTool tool, ExecutableElement method) {
+    if (method.getAnnotation(MapperFor.class) == null) {
+      return false;
+    }
+    if (method.getAnnotation(CollectorFor.class) != null) {
+      throw ValidationException.create(method, "The method can be either a mapper or collector, but not both.");
+    }
+    if (method.getModifiers().contains(ABSTRACT)) {
+      throw ValidationException.create(method, "The mapper method must not be abstract.");
+    }
+    if (method.getModifiers().contains(PRIVATE)) {
+      throw ValidationException.create(method, "The mapper method must not be private.");
+    }
+    if (method.getParameters().size() != 1 || !tool.isSameType(method.getParameters().get(0).asType(), String.class.getCanonicalName())) {
+      throw ValidationException.create(method, "The mapper method must have a single parameter of type String.");
+    }
+    return true;
+  }
+
+  private static boolean validateCollectorMethod(TypeTool tool, ExecutableElement method) {
+    if (method.getAnnotation(CollectorFor.class) == null) {
+      return false;
+    }
+    if (method.getAnnotation(MapperFor.class) != null) {
+      throw ValidationException.create(method, "The method can be either a mapper or collector, but not both.");
+    }
+    if (method.getModifiers().contains(ABSTRACT)) {
+      throw ValidationException.create(method, "The collector method must not be abstract.");
+    }
+    if (method.getModifiers().contains(PRIVATE)) {
+      throw ValidationException.create(method, "The collector method must not be private.");
+    }
+    if (!method.getParameters().isEmpty()) {
+      throw ValidationException.create(method, "The collector method must be parameterless.");
+    }
+    if (!method.getParameters().isEmpty() || !tool.isSameErasure(method.getReturnType(), Collector.class.getCanonicalName())) {
+      throw ValidationException.create(method, "The collector method must return an instance of java.util.stream.Collector.");
     }
     return true;
   }

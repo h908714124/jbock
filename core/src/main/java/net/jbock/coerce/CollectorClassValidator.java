@@ -5,7 +5,7 @@ import net.jbock.coerce.reference.ReferencedType;
 import net.jbock.compiler.TypeTool;
 import net.jbock.compiler.ValidationException;
 
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collections;
 import java.util.function.Function;
@@ -19,24 +19,24 @@ class CollectorClassValidator {
 
   private final Function<String, ValidationException> errorHandler;
   private final TypeTool tool;
-  private final TypeElement collectorClass;
+  private final ExecutableElement collector;
   private final TypeMirror returnType;
 
   CollectorClassValidator(
       Function<String, ValidationException> errorHandler,
       TypeTool tool,
-      TypeElement collectorClass,
+      ExecutableElement collector,
       TypeMirror returnType) {
     this.errorHandler = errorHandler;
     this.tool = tool;
-    this.collectorClass = collectorClass;
+    this.collector = collector;
     this.returnType = returnType;
   }
 
   CollectorInfo getCollectorInfo() {
-    commonChecks(collectorClass);
-    checkNotAbstract(collectorClass);
-    ReferencedType<Collector<?, ?, ?>> collectorType = new ReferenceTool<>(COLLECTOR, this::boom, tool, collectorClass)
+    commonChecks(collector);
+    checkNotAbstract(collector);
+    ReferencedType<Collector<?, ?, ?>> collectorType = new ReferenceTool<>(COLLECTOR, this::boom, tool, collector)
         .getReferencedType();
     TypeMirror inputType = collectorType.typeArguments().get(0);
     TypeMirror outputType = collectorType.typeArguments().get(2);
@@ -44,10 +44,10 @@ class CollectorClassValidator {
         .orElseThrow(this::boom);
     TypevarMapping leftSolution = new TypevarMapping(Collections.emptyMap(), tool, this::boom);
     FlattenerResult result = leftSolution.merge(rightSolution).flatMap(Function.identity(),
-        mapping -> mapping.getTypeParameters(collectorClass))
+        mapping -> mapping.getTypeParameters(collector))
         .orElseThrow(this::boom);
     TypeMirror substituted = result.substitute(inputType);
-    return CollectorInfo.create(tool, substituted, collectorClass,
+    return CollectorInfo.create(tool, substituted, collector,
         collectorType.isSupplier(), result.getTypeParameters());
   }
 

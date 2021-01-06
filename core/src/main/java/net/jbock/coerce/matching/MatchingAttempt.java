@@ -9,7 +9,7 @@ import net.jbock.coerce.NonFlagCoercion;
 import net.jbock.coerce.NonFlagSkew;
 import net.jbock.coerce.either.Either;
 
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,14 +20,15 @@ class MatchingAttempt {
   private final ParameterSpec constructorParam;
   private final NonFlagSkew skew;
   private final TypeMirror testType;
-  private final TypeElement mapperClass;
+  private final ExecutableElement mapper;
 
-  MatchingAttempt(TypeMirror testType, CodeBlock extractExpr, ParameterSpec constructorParam, NonFlagSkew skew, TypeElement mapperClass) {
+  MatchingAttempt(TypeMirror testType, CodeBlock extractExpr, ParameterSpec constructorParam, NonFlagSkew skew,
+                  ExecutableElement mapper) {
     this.testType = testType;
     this.extractExpr = extractExpr;
     this.constructorParam = constructorParam;
     this.skew = skew;
-    this.mapperClass = mapperClass;
+    this.mapper = mapper;
   }
 
   static CodeBlock autoCollectExpr(BasicInfo basicInfo, NonFlagSkew skew) {
@@ -45,7 +46,7 @@ class MatchingAttempt {
   }
 
   Either<String, Coercion> findCoercion(BasicInfo basicInfo) {
-    MapperClassValidator validator = new MapperClassValidator(basicInfo::failure, basicInfo.tool(), testType, mapperClass);
+    MapperClassValidator validator = new MapperClassValidator(basicInfo::failure, basicInfo.tool(), testType, mapper);
     return validator.getMapExpr().map(Function.identity(), mapExpr -> {
       CodeBlock expr = autoCollectExpr(basicInfo, skew);
       return new NonFlagCoercion(basicInfo, mapExpr, expr, extractExpr, skew, constructorParam);
