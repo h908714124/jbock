@@ -1,4 +1,4 @@
-package net.jbock.coerce;
+package net.jbock.compiler;
 
 import net.jbock.compiler.TypeTool;
 import net.jbock.compiler.ValidationException;
@@ -13,9 +13,9 @@ import javax.lang.model.util.ElementFilter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SuppliedClassValidator {
+class SuppliedClassValidator {
 
-  public static void commonChecks(TypeElement classToCheck) {
+  static void commonChecks(TypeElement classToCheck) {
     if (classToCheck.getNestingKind().isNested() && classToCheck.getNestingKind() != NestingKind.MEMBER) {
       throw ValidationException.create(classToCheck, "Use a top level class or static inner class.");
     }

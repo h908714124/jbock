@@ -9,6 +9,7 @@ import net.jbock.compiler.TypeTool;
 import net.jbock.compiler.ValidationException;
 
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import java.util.Optional;
@@ -17,6 +18,8 @@ import java.util.Optional;
  * Coercion input: Information about a single parameter (option or param).
  */
 public class BasicInfo {
+
+  private final TypeElement sourceElement;
 
   private final ParamName paramName;
 
@@ -33,12 +36,14 @@ public class BasicInfo {
   private final ExecutableElement collector;
 
   BasicInfo(
+      TypeElement sourceElement,
       ExecutableElement mapper,
       ExecutableElement collector,
       ParamName paramName,
       ClassName optionType,
       ExecutableElement sourceMethod,
       TypeTool tool) {
+    this.sourceElement = sourceElement;
     this.mapper = mapper;
     this.collector = collector;
     this.paramName = paramName;
@@ -95,5 +100,9 @@ public class BasicInfo {
     Types types = tool.types();
     return types.directSupertypes(mirror).stream()
         .anyMatch(t -> tool.isSameErasure(t, Enum.class.getCanonicalName()));
+  }
+
+   public TypeElement sourceElement() {
+    return sourceElement;
   }
 }

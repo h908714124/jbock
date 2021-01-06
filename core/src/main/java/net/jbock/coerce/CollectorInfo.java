@@ -1,38 +1,36 @@
 package net.jbock.coerce;
 
 import com.squareup.javapoet.CodeBlock;
-import net.jbock.compiler.TypeTool;
+import com.squareup.javapoet.TypeName;
 
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
-import java.util.List;
-
-import static net.jbock.coerce.Util.getTypeParameterList;
 
 class CollectorInfo {
 
   // For custom collector this is the T in Collector<T, A, R>.
   // For default collector it is the E in List<E>.
   private final TypeMirror inputType;
-  private final CodeBlock collectExpr;
 
-  private CollectorInfo(TypeMirror inputType, CodeBlock collectExpr) {
+  private final ExecutableElement collector;
+
+  private CollectorInfo(TypeMirror inputType, ExecutableElement collector) {
     this.inputType = inputType;
-    this.collectExpr = collectExpr;
+    this.collector = collector;
   }
 
-  static CollectorInfo create(TypeTool tool, TypeMirror inputType, TypeElement collectorClass, boolean supplier, List<TypeMirror> solution) {
-    return new CollectorInfo(inputType, CodeBlock.of(".collect(new $T$L()$L)",
-        tool.types().erasure(collectorClass.asType()),
-        getTypeParameterList(solution),
-        supplier ? ".get()" : ""));
+  static CollectorInfo create(TypeMirror inputType, ExecutableElement collectorClass) {
+    return new CollectorInfo(inputType, collectorClass);
   }
 
   TypeMirror inputType() {
     return inputType;
   }
 
-  CodeBlock collectExpr() {
-    return collectExpr;
+  CodeBlock collectExpr(TypeElement sourceElement) {
+    return CodeBlock.of(".collect($T.$L())",
+        TypeName.get(sourceElement.asType()),
+        collector.getSimpleName().toString());
   }
 }

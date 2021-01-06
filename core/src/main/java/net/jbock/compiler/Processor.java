@@ -8,7 +8,6 @@ import net.jbock.Command;
 import net.jbock.MapperFor;
 import net.jbock.Option;
 import net.jbock.Param;
-import net.jbock.coerce.SuppliedClassValidator;
 import net.jbock.compiler.view.GeneratedClass;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -43,6 +42,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toSet;
 import static javax.lang.model.element.Modifier.ABSTRACT;
 import static javax.lang.model.element.Modifier.PRIVATE;
+import static javax.lang.model.element.Modifier.STATIC;
 import static javax.lang.model.util.ElementFilter.methodsIn;
 import static net.jbock.compiler.TypeTool.AS_DECLARED;
 
@@ -198,14 +198,14 @@ public final class Processor extends AbstractProcessor {
         .collect(Collectors.toList()));
     List<Parameter> params = new ArrayList<>();
     for (int i = 0; i < methods.params().size(); i++) {
-      params.add(Parameter.createPositionalParam(tool, params, methods.params().get(i), i,
+      params.add(Parameter.createPositionalParam(sourceElement, tool, params, methods.params().get(i), i,
           mappers.get(methods.params().get(i).getSimpleName().toString()),
           collectors.get(methods.params().get(i).getSimpleName().toString()),
           getDescription(methods.params().get(i)), optionType));
     }
     boolean anyMnemonics = methods.options().stream().anyMatch(method -> method.getAnnotation(Option.class).mnemonic() != ' ');
     for (ExecutableElement option : methods.options()) {
-      params.add(Parameter.createNamedOption(anyMnemonics, tool, params, option,
+      params.add(Parameter.createNamedOption(sourceElement, anyMnemonics, tool, params, option,
           mappers.get(option.getSimpleName().toString()),
           collectors.get(option.getSimpleName().toString()),
           getDescription(option), optionType));
@@ -292,6 +292,12 @@ public final class Processor extends AbstractProcessor {
     if (method.getModifiers().contains(ABSTRACT)) {
       throw ValidationException.create(method, "The mapper method must not be abstract.");
     }
+    if (!method.getModifiers().contains(STATIC)) {
+      throw ValidationException.create(method, "The mapper method must be static.");
+    }
+    if (!method.getTypeParameters().isEmpty()) {
+      throw ValidationException.create(method, "The mapper method must not declare any type parameters.");
+    }
     if (method.getModifiers().contains(PRIVATE)) {
       throw ValidationException.create(method, "The mapper method must not be private.");
     }
@@ -310,6 +316,12 @@ public final class Processor extends AbstractProcessor {
     }
     if (method.getModifiers().contains(ABSTRACT)) {
       throw ValidationException.create(method, "The collector method must not be abstract.");
+    }
+    if (!method.getModifiers().contains(STATIC)) {
+      throw ValidationException.create(method, "The collector method must be static.");
+    }
+    if (!method.getTypeParameters().isEmpty()) {
+      throw ValidationException.create(method, "The collector method must not declare any type parameters.");
     }
     if (method.getModifiers().contains(PRIVATE)) {
       throw ValidationException.create(method, "The collector method must not be private.");

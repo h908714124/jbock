@@ -22,12 +22,6 @@ public final class Util {
         .collect(Collectors.joining(", ", "<", ">")), params.toArray());
   }
 
-  public static void checkNotAbstract(TypeElement typeElement) {
-    if (typeElement.getModifiers().contains(ABSTRACT)) {
-      throw ValidationException.create(typeElement, "The class may not be abstract.");
-    }
-  }
-
   public static String addBreaks(String code) {
     return code.replace(" ", "$W");
   }

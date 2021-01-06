@@ -3,6 +3,7 @@ package net.jbock.compiler;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.TypeName;
 import net.jbock.Option;
+import net.jbock.Param;
 import net.jbock.coerce.Coercion;
 import net.jbock.coerce.CoercionProvider;
 import net.jbock.coerce.FlagCoercion;
@@ -27,7 +28,7 @@ import static java.lang.Character.isWhitespace;
 import static net.jbock.compiler.Constants.ALLOWED_MODIFIERS;
 
 /**
- * This class represents either an {@link Option} or a {@link net.jbock.Param}.
+ * This class represents either an {@link Option} or a {@link Param}.
  */
 public final class Parameter {
 
@@ -93,20 +94,24 @@ public final class Parameter {
     return coercion;
   }
 
-  static Parameter createPositionalParam(TypeTool tool, List<Parameter> alreadyCreated, ExecutableElement sourceMethod,
-                                         int positionalIndex, ExecutableElement mapper, ExecutableElement collector,
-                                         String[] description, ClassName optionType) {
-    net.jbock.Param parameter = sourceMethod.getAnnotation(net.jbock.Param.class);
+  static Parameter createPositionalParam(
+      TypeElement sourceElement,
+      TypeTool tool, List<Parameter> alreadyCreated, ExecutableElement sourceMethod,
+      int positionalIndex, ExecutableElement mapper, ExecutableElement collector,
+      String[] description, ClassName optionType) {
+    Param parameter = sourceMethod.getAnnotation(Param.class);
     ParamName name = findParamName(alreadyCreated, sourceMethod);
-    Coercion coercion = CoercionProvider.nonFlagCoercion(sourceMethod, name, mapper, collector, optionType, tool);
+    Coercion coercion = CoercionProvider.nonFlagCoercion(sourceElement, sourceMethod, name, mapper, collector, optionType, tool);
     checkBundleKey(parameter.bundleKey(), alreadyCreated, sourceMethod);
     return new Parameter(' ', null, sourceMethod, parameter.bundleKey(), name.snake().toLowerCase(Locale.US),
         Collections.emptyList(), coercion, Arrays.asList(description), positionalIndex);
   }
 
-  static Parameter createNamedOption(boolean anyMnemonics, TypeTool tool, List<Parameter> alreadyCreated,
-                                     ExecutableElement sourceMethod, ExecutableElement mapper,
-                                     ExecutableElement collector, String[] description, ClassName optionType) {
+  static Parameter createNamedOption(
+      TypeElement sourceElement,
+      boolean anyMnemonics, TypeTool tool, List<Parameter> alreadyCreated,
+      ExecutableElement sourceMethod, ExecutableElement mapper,
+      ExecutableElement collector, String[] description, ClassName optionType) {
     String optionName = optionName(alreadyCreated, sourceMethod);
     char mnemonic = mnemonic(alreadyCreated, sourceMethod);
     Option option = sourceMethod.getAnnotation(Option.class);
@@ -114,7 +119,7 @@ public final class Parameter {
     boolean flag = isInferredFlag(mapper, collector, sourceMethod.getReturnType(), tool);
     Coercion coercion = flag ?
         new FlagCoercion(name, sourceMethod) :
-        CoercionProvider.nonFlagCoercion(sourceMethod, name, mapper, collector, optionType, tool);
+        CoercionProvider.nonFlagCoercion(sourceElement, sourceMethod, name, mapper, collector, optionType, tool);
     String bundleKey = option.bundleKey().isEmpty() ? option.value() : option.bundleKey();
     checkBundleKey(bundleKey, alreadyCreated, sourceMethod);
     List<String> names = names(optionName, mnemonic);

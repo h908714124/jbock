@@ -11,20 +11,21 @@ import net.jbock.compiler.TypeTool;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
-import java.util.Optional;
 
 import static net.jbock.coerce.NonFlagSkew.REPEATABLE;
 
 public class CoercionProvider {
 
   public static Coercion nonFlagCoercion(
+      TypeElement sourceElement,
       ExecutableElement sourceMethod,
       ParamName paramName,
       ExecutableElement mapperClass,
       ExecutableElement collectorClass,
       ClassName optionType,
       TypeTool tool) {
-    BasicInfo info = new BasicInfo(mapperClass, collectorClass, paramName, optionType, sourceMethod, tool);
+    BasicInfo info = new BasicInfo(sourceElement, mapperClass,
+        collectorClass, paramName, optionType, sourceMethod, tool);
     return findCoercion(info);
   }
 
@@ -38,7 +39,7 @@ public class CoercionProvider {
       CodeBlock mapExpr = basicInfo.mapperClass()
           .map(mapperClass -> collectorPresentExplicit(basicInfo, inputType, mapperClass))
           .orElseGet(() -> collectorPresentAuto(basicInfo, inputType));
-      return new NonFlagCoercion(basicInfo, mapExpr, collectorInfo.collectExpr(),
+      return new NonFlagCoercion(basicInfo, mapExpr, collectorInfo.collectExpr(basicInfo.sourceElement()),
           CodeBlock.of("$N", constructorParam), REPEATABLE, constructorParam);
     }).orElseGet(() -> {
       if (basicInfo.mapperClass().isPresent()) {
@@ -56,7 +57,8 @@ public class CoercionProvider {
   }
 
   private static CodeBlock collectorPresentExplicit(BasicInfo basicInfo, TypeMirror inputType, ExecutableElement mapperClass) {
-    return new MapperClassValidator(basicInfo::failure, basicInfo.tool(), inputType, mapperClass).getMapExpr()
+    return new MapperClassValidator(basicInfo.sourceElement(), basicInfo::failure,
+        basicInfo.tool(), inputType, mapperClass).getMapExpr()
         .orElseThrow(basicInfo::failure);
   }
 }
