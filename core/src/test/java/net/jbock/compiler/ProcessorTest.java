@@ -496,6 +496,8 @@ class ProcessorTest {
         "import net.jbock.Command;",
         "import net.jbock.Param;",
         "import net.jbock.Option;",
+        "import net.jbock.MapperFor;",
+        "import net.jbock.CollectorFor;",
         "");
     List<String> moreLines = new ArrayList<>(lines.length + header.size());
     moreLines.addAll(header);
