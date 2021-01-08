@@ -6,6 +6,6 @@ import net.jbock.Param;
 @Command
 abstract class ExtremelySimpleArguments {
 
-  @Param(value = 1)
+  @Param(1)
   abstract int hello();
 }

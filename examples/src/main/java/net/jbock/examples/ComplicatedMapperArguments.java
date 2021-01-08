@@ -5,7 +5,6 @@ import net.jbock.MapperFor;
 import net.jbock.Option;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 @Command
@@ -16,13 +15,6 @@ abstract class ComplicatedMapperArguments {
 
   @Option("numbers")
   abstract List<LazyNumber> numbers();
-
-  static class LazyNumberMapper implements Supplier<Function<String, LazyNumber>> {
-    @Override
-    public Function<String, LazyNumber> get() {
-      return s -> () -> Integer.valueOf(s);
-    }
-  }
 
   @MapperFor("numbers")
   static LazyNumber mapLazy(String s) {
