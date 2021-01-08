@@ -1,6 +1,5 @@
 package net.jbock.examples;
 
-import net.jbock.examples.CustomMapperArguments.MyEnum;
 import net.jbock.examples.fixture.ParserTestFixture;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.AssertionFailedError;
